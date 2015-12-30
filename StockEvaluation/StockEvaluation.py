@@ -123,6 +123,7 @@ class MacdCrossStrategy(object):
     def __init__(self):
         self.column_name = 'macd_cross'
     def prepare_data(self, df):
+        MacdIndicator().populate(df)
         window_apply(df, self.column_name, 2, lambda x: cross(x, 'MACD_DIF', 'MACD_DEA')) 
     def evaluate(self, df, index, account):
         if (df[self.column_name].values[index] == 1 and account.fund > 0 and df['MACD_DIF'][index] < 0 and df['MACD_DEA'][index] < 0):
@@ -135,8 +136,7 @@ class MacdCrossStrategy(object):
 class CrossCurrentOnlyStrategy(object):
     def __init__(self):
         self.column_name = 'cross_current_only'
-    def prepare_data(self, df):
-        MacdIndicator().populate(df)
+    def prepare_data(self, df):        
         window_apply(df, self.column_name, 2, lambda x: cross_current_only(x, 'ma5', 'ma10')) 
     def evaluate(self, df, index, account): 
         if (df[self.column_name].values[index] == 1 and account.fund > 0):
