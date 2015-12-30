@@ -146,6 +146,28 @@ class KdjCrossStrategy(object):
             return TradeCommand(-1, -1, 'sell')
         else:
             return None
+
+class CombinedStrategy(object):
+    def __init__(self):
+        self.macd = MacdCrossStrategy()
+        self.sphinx = SphinxStrategy()
+        self.cross = CrossStrategy()
+    def prepare_data(self, df):
+        self.macd.prepare_data(df)
+        self.sphinx.prepare_data(df)
+        self.cross.prepare_data(df)
+    def evaluate(self, df, index, account):
+        macdResult = self.macd.evaluate(df, index, account)
+        sphinxResult = self.sphinx.evaluate(df, index, account)
+        if (sphinxResult != None and sphinxResult.trade_type == 'sell'):
+            return sphinxResult
+        #elif (macdResult != None and sphinxResult.trade_type == 'sell'):
+        #    return macdResult
+        elif (macdResult != None and macdResult.trade_type == 'buy'):
+            return macdResult
+        elif (sphinxResult != None and sphinxResult.trade_type == 'buy'):
+            return sphinxResult
+        return None
      
 class CrossCurrentOnlyStrategy(object):
     def __init__(self):
