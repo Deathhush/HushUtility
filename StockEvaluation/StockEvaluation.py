@@ -75,7 +75,7 @@ def evaluate_strategy(df, strategy, verbose=False):
             account.fund = account.fund - actual_buy_share*buy_price
             if (verbose):
                 print("[%d,%s] Try to buy %d shares at price %f. %d shares bought" % (i, df['date'].values[i], buy_share, buy_price, actual_buy_share))
-                print("[%d,%s] fund: %f share: %f" % (i, df['date'].values[i], account.fund, account.share))
+                print("[%d,%s] fund: %f share: %f value: %f" % (i, df['date'].values[i], account.fund, account.share, account.fund+account.share*df['close'].values[i]*100))
         elif (command.trade_type == 'sell'):
             sell_price = command.price
             if (sell_price == -1):
@@ -88,7 +88,7 @@ def evaluate_strategy(df, strategy, verbose=False):
             account.share = account.share - actual_sell_share
             if (verbose):
                 print("[%d,%s] Try to sell %d shares at price %f. %d shares sold" % (i, df['date'].values[i], sell_share, sell_price, actual_sell_share))
-                print("[%d,%s] fund: %f share: %f" % (i, df['date'].values[i], account.fund, account.share))
+                print("[%d,%s] fund: %f share: %f value: %f" % (i, df['date'].values[i], account.fund, account.share, account.fund+account.share*df['close'].values[i]*100))
             share = 0
     close_price = df['close'].values[df.index.size-1]*100
     print('[Result] fund: %f share: %f value: %f' % (account.fund, account.share, account.fund+account.share*close_price) )
@@ -118,13 +118,27 @@ class CrossStrategy(object):
             return TradeCommand(-1, -1, 'sell')
         else:
             return None
-        
+
+class MacdCrossStrategy(object):
+    def __init__(self):
+        self.column_name = 'macd_cross'
+    def prepare_data(self, df):
+        window_apply(df, self.column_name, 2, lambda x: cross(x, 'MACD_DIF', 'MACD_DEA')) 
+    def evaluate(self, df, index, account):
+        if (df[self.column_name].values[index] == 1 and account.fund > 0 and df['MACD_DIF'][index] < 0 and df['MACD_DEA'][index] < 0):
+            return TradeCommand(-1, -1, 'buy')
+        elif (df[self.column_name].values[index] == -1 and account.fund > 0 and df['MACD_DIF'][index] > 0 and df['MACD_DEA'][index] > 0):
+            return TradeCommand(-1, -1, 'sell')
+        else:
+            return None
+     
 class CrossCurrentOnlyStrategy(object):
     def __init__(self):
         self.column_name = 'cross_current_only'
     def prepare_data(self, df):
+        MacdIndicator().populate(df)
         window_apply(df, self.column_name, 2, lambda x: cross_current_only(x, 'ma5', 'ma10')) 
-    def evaluate(self, df, index, account):
+    def evaluate(self, df, index, account): 
         if (df[self.column_name].values[index] == 1 and account.fund > 0):
             return TradeCommand(-1, -1, 'buy')
         elif (df[self.column_name].values[index] == -1):
@@ -135,8 +149,10 @@ class CrossCurrentOnlyStrategy(object):
 class SphinxStrategy(object):
     def __init__(self):
         self.window = 5
-        self.sell_all_threshold = 0.9
+        self.sell_all_threshold = 0.95
         self.share_size = 10
+        self.buy_threshold = 1
+        self.sell_threshold = 1
     def prepare_data(self, df):        
         return
     def evaluate(self, df, index, account):
@@ -146,20 +162,22 @@ class SphinxStrategy(object):
                     buy_price = df['high'].values[index]*100
                     self.buy_share = account.fund / buy_price / self.share_size
                     return TradeCommand(share=self.buy_share, price=-1, trade_type='buy')
-            if (account.share > 0 and index > self.window):
-                if (df['close'].values[index] > df['close'].values[index-self.window]):
+            if (account.share > 0 and index > self.window):                
+                if (df['close'].values[index] > df['close'].values[index-self.window] * self.buy_threshold):
                     return TradeCommand(share=self.buy_share, price=-1, trade_type='buy')
-                else:
-                    if (df['close'].values[index] / df['close'].values[index-self.window] < self.sell_all_threshold):
-                        return TradeCommand(-1, -1, trade_type='sell')
-                    else:
-                        return TradeCommand(share=self.buy_share, price=-1, trade_type='sell')                    
+                if (df['close'].values[index] < df['close'].values[index-self.window] * self.sell_threshold):
+                    return TradeCommand(share=self.buy_share, price=-1, trade_type='sell')                    
+                if (df['close'].values[index] / df['close'].values[index-self.window] < self.sell_all_threshold):
+                    return TradeCommand(-1, -1, trade_type='sell')
+            if (account.share > 0 and index > 2*self.window):
+                if (df['close'].values[index] < df['close'].values[index-self.window] * self.sell_threshold and df['close'].values[index] < df['close'].values[index-2*self.window] * self.sell_threshold):
+                    return TradeCommand(-1, -1, trade_type='sell')
         return None
 
-class KdjStrategy(object):
+class KdjIndicator(object):
     def __init__(self, windowSize=9):
         self.windowSize = 9
-    def prepare_data(self, df):
+    def populate(self, df):
         result_rsv = []
         result_k = []
         result_d = []
@@ -186,8 +204,6 @@ class KdjStrategy(object):
         df['KDJ_D'] = result_d
         df['KDJ_J'] = result_j
         return
-    def evaluate(self, df, index, account):
-        return None
     def calculate_rsv(self, df, index):
         current_min_low = df['low'].values[index]
         for i in range(1, self.windowSize):
@@ -200,3 +216,30 @@ class KdjStrategy(object):
         #print 'max', current_max_high
         #print 'min', current_min_low
         return (current_close - current_min_low) / (current_max_high - current_min_low) * 100
+
+class MacdIndicator(object):
+    def __init__(self):
+        self.fast = 12        
+        self.slow = 26        
+        self.average = 9
+    def populate(self, df):  
+        ema_fast = self.calculate_ema(df, 'close', self.fast)        
+        df['MACD_EMA_FAST'] = ema_fast
+        ema_slow = self.calculate_ema(df, 'close', self.slow)
+        df['MACD_EMA_SLOW'] = ema_slow
+        dif = [np.NaN for i in range(self.slow-1)]        
+        dif = dif + [ema_fast[i + self.slow-1] - ema_slow[i + self.slow-1] for i in range(df.index.size-self.slow+1)]        
+        df['MACD_DIF'] = dif
+        dea = [np.NaN for i in range(self.slow-1)]        
+        dea = dea + self.calculate_ema(df[self.slow-1:], 'MACD_DIF', self.average, self.slow-1)        
+        df['MACD_DEA'] = dea        
+    def calculate_ema(self, df, columnName, windowSize, base=0):        
+        factor = 2.0/(windowSize+1)        
+        ema = [np.NaN for i in range(windowSize-1)]        
+        ema.append(df[base:windowSize+base][columnName].mean())                
+        total_count = df.index.size        
+        for i in range (total_count-windowSize):
+            current_index = i + windowSize 
+            current_adjusted_index = current_index + base           
+            ema.append(factor*df[columnName][current_adjusted_index] + (1.0-factor)*ema[current_index-1])        
+        return ema
