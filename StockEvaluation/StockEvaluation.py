@@ -132,6 +132,20 @@ class MacdCrossStrategy(object):
             return TradeCommand(-1, -1, 'sell')
         else:
             return None
+
+class KdjCrossStrategy(object):
+    def __init__(self):
+        self.column_name = 'kdj_cross'
+    def prepare_data(self, df):
+        KdjIndicator().populate(df)
+        window_apply(df, self.column_name, 2, lambda x: cross(x, 'KDJ_K', 'KDJ_D')) 
+    def evaluate(self, df, index, account):
+        if (df[self.column_name].values[index] == 1 ):
+            return TradeCommand(-1, -1, 'buy')
+        elif (df[self.column_name].values[index] == -1):
+            return TradeCommand(-1, -1, 'sell')
+        else:
+            return None
      
 class CrossCurrentOnlyStrategy(object):
     def __init__(self):
