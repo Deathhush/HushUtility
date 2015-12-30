@@ -1,4 +1,4 @@
 # Hush
 Misc projects by me.
 
-StockEvaluation: A evaluation program to test strategies to trade stock.
+StockEvaluation: A stock trading strategy evaluation framework.
