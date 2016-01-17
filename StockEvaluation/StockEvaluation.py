@@ -74,7 +74,7 @@ class Account(object):
 def evaluate_strategy(df, strategy, verbose=False):    
     print '[Start] Evaluating strategy=%s verbose=%s' % (strategy.__class__.__name__, verbose)
     account = Account(1000000,0)
-    strategy.prepare_data(df)
+    strategy.prepare(df, account)
     for i in range(df.index.size-1):
         command = strategy.evaluate(df[:i+1], i, account)
         if (command == None):            
@@ -198,7 +198,7 @@ class MacdIndicator(object):
 class CrossStrategy(object):
     def __init__(self):
         self.column_name = 'cross'
-    def prepare_data(self, df):
+    def prepare(self, df, account):
         window_apply(df, self.column_name, 2, lambda x: cross(x, 'ma5', 'ma10')) 
     def evaluate(self, df, index, account):
         if (df[self.column_name].values[index] == 1 and account.fund > 0):
@@ -211,7 +211,7 @@ class CrossStrategy(object):
 class MacdCrossStrategy(object):
     def __init__(self):
         self.column_name = 'macd_cross'
-    def prepare_data(self, df):
+    def prepare(self, df, account):
         MacdIndicator().populate(df)
         window_apply(df, self.column_name, 2, lambda x: cross(x, 'MACD_DIF', 'MACD_DEA')) 
     def evaluate(self, df, index, account):
@@ -225,7 +225,7 @@ class MacdCrossStrategy(object):
 class KdjCrossStrategy(object):
     def __init__(self):
         self.column_name = 'kdj_cross'
-    def prepare_data(self, df):
+    def prepare(self, df, account):
         KdjIndicator().populate(df)
         window_apply(df, self.column_name, 2, lambda x: cross(x, 'KDJ_K', 'KDJ_D')) 
     def evaluate(self, df, index, account):
@@ -235,33 +235,11 @@ class KdjCrossStrategy(object):
             return TradeCommand(-1, -1, 'sell')
         else:
             return None
-
-class CombinedStrategy(object):
-    def __init__(self):
-        self.macd = MacdCrossStrategy()
-        self.sphinx = SphinxStrategy()
-        self.cross = CrossStrategy()
-    def prepare_data(self, df):
-        self.macd.prepare_data(df)
-        self.sphinx.prepare_data(df)
-        self.cross.prepare_data(df)
-    def evaluate(self, df, index, account):
-        crossResult = self.cross.evaluate(df, index, account)
-        sphinxResult = self.sphinx.evaluate(df, index, account)
-        if (sphinxResult != None and sphinxResult.trade_type == 'sell'):
-            return sphinxResult
-        #elif (macdResult != None and sphinxResult.trade_type == 'sell'):
-        #    return macdResult
-        elif (crossResult != None and crossResult.trade_type == 'buy'):
-            return crossResult
-        elif (sphinxResult != None and sphinxResult.trade_type == 'buy'):
-            return sphinxResult
-        return None
      
 class CrossCurrentOnlyStrategy(object):
     def __init__(self):
         self.column_name = 'cross_current_only'
-    def prepare_data(self, df):        
+    def prepare(self, df, account):        
         window_apply(df, self.column_name, 2, lambda x: cross_current_only(x, 'ma5', 'ma10')) 
     def evaluate(self, df, index, account): 
         if (df[self.column_name].values[index] == 1 and account.fund > 0):
@@ -278,14 +256,14 @@ class SphinxStrategy(object):
         self.share_size = 10
         self.buy_threshold = 1
         self.sell_threshold = 1
-    def prepare_data(self, df):        
-        return
+    def prepare(self, df, account):
+        buy_price = df['high'].values[0]*100
+        self.buy_share = account.fund / buy_price / self.share_size        
     def evaluate(self, df, index, account):
         if (index % self.window == 0):
             if (account.share == 0):                
                 if (isUp(df, index, 'ma10')):
-                    buy_price = df['high'].values[index]*100
-                    self.buy_share = account.fund / buy_price / self.share_size
+                    buy_price = df['high'].values[index]*100                    
                     return TradeCommand(share=self.buy_share, price=-1, trade_type='buy')
             if (account.share > 0 and index > self.window):                
                 if (df['close'].values[index] > df['close'].values[index-self.window] * self.buy_threshold):
@@ -299,4 +277,26 @@ class SphinxStrategy(object):
                     return TradeCommand(-1, -1, trade_type='sell')
             if (account.share > 0 and account.average_price > df['close'][index]):
                 return TradeCommand(-1, -1, trade_type='sell') 
+        return None
+
+class CombinedStrategy(object):
+    def __init__(self):
+        self.macd = MacdCrossStrategy()
+        self.sphinx = SphinxStrategy()
+        self.cross = CrossStrategy()
+    def prepare(self, df, account):
+        self.macd.prepare(df, account)
+        self.sphinx.prepare(df, account)
+        self.cross.prepare(df, account)
+    def evaluate(self, df, index, account):
+        crossResult = self.cross.evaluate(df, index, account)
+        sphinxResult = self.sphinx.evaluate(df, index, account)
+        if (sphinxResult != None and sphinxResult.trade_type == 'sell'):
+            return sphinxResult
+        #elif (macdResult != None and sphinxResult.trade_type == 'sell'):
+        #    return macdResult
+        elif (crossResult != None and crossResult.trade_type == 'buy'):
+            return crossResult
+        elif (sphinxResult != None and sphinxResult.trade_type == 'buy'):
+            return sphinxResult
         return None
