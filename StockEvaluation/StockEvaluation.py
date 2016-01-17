@@ -1,8 +1,10 @@
 import pandas
+import os
 import numpy as np
 import pandas as pd
 
 from pandas import Series, DataFrame
+from StockDataFetcher import StockDataFetcher
 
 def cross(data, val1, val2): 
     if (data[val1].values[1] > data[val1].values[0]  and data[val2].values[1]  > data[val2].values[0] 
@@ -40,6 +42,19 @@ def generate_daily_df(symbol, year='', file_path = 'D:\\Testland\\stock_data\\')
     result_df['ma5']=pd.rolling_mean(result_df['close'] , 5)
     result_df['ma10']=pd.rolling_mean(result_df['close'] , 10)
     analyzed_path = '%s\\analyzed\\%s.%s.daily.analyzed.csv' % (file_path, symbol, year)
+    result_df.to_csv(analyzed_path)
+    result_df = pandas.read_csv(analyzed_path)      
+    return result_df
+
+def load_daily_df(symbol, year='', file_path = 'D:\\Testland\\stock_data\\'):
+    if (year != ''):
+        year_part = '\\%s\\' % year
+    analyzed_path = '%s\\analyzed\\%s.%s.daily.analyzed.csv' % (file_path, symbol, year)
+    if (os.path.isfile(analyzed_path)!=True):
+        StockDataFetcher().fetch_daily_bar(symbol, year, file_path)
+    result_df = pandas.read_csv('%s%sdaily.%s.csv' % (file_path, year_part, symbol))
+    result_df['ma5']=pd.rolling_mean(result_df['close'] , 5)
+    result_df['ma10']=pd.rolling_mean(result_df['close'] , 10)    
     result_df.to_csv(analyzed_path)
     result_df = pandas.read_csv(analyzed_path)      
     return result_df
