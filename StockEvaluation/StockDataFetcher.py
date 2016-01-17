@@ -5,10 +5,12 @@ import csv
 import ConfigParser
 
 class StockDataFetcher(object):
-    def init(self, workingDir="D:\\Testland\\stock_data\\gm\\gm.ini"):
+    def __init__(self, configFilePath="D:\\Testland\\stock_data\\gm\\gm.ini"):
+    	cf = ConfigParser.ConfigParser()
         cf.read(configFilePath)
         user = cf.get('account', 'user')
         password = cf.get('account','password')
+        print 'Initializing MD with user "%s"' % user
         md.init(user, password)
     
     def get_daily_bar(self, symbol, year=2015):
@@ -36,6 +38,11 @@ class StockDataFetcher(object):
         if(len(dayBars)>0):
             outputFile = '%s\\%s\\daily.%s.csv' % (outputFolder, year, symbol)
             self.save_daily_bar_to_file(dayBars=dayBars, outputFile=outputFile)
+            print 'Daily bar data is loaded.'
         else:
             outputFile = '%s\\%s\\no.daily.%s.csv' % (outputFolder, year, symbol)
             self.save_daily_bar_to_file(dayBars=dayBars, outputFile=outputFile)
+            print 'No data is loaded.'
+
+def dayBarToRow(dayBar):
+    return [datetime.fromtimestamp(dayBar.utc_time).strftime('%Y/%m/%d'), dayBar.open, dayBar.high, dayBar.low, dayBar.close, dayBar.volume, dayBar.amount]
