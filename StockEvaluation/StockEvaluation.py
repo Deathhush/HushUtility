@@ -46,19 +46,6 @@ def generate_daily_df(symbol, year='', file_path = 'D:\\Testland\\stock_data\\')
     result_df = pandas.read_csv(analyzed_path)      
     return result_df
 
-def load_daily_df(symbol, year='', file_path = 'D:\\Testland\\stock_data\\'):
-    if (year != ''):
-        year_part = '\\%s\\' % year
-    analyzed_path = '%s\\analyzed\\%s.%s.daily.analyzed.csv' % (file_path, symbol, year)
-    if (os.path.isfile(analyzed_path)!=True):
-        StockDataFetcher().fetch_daily_bar(symbol, year, file_path)
-    result_df = pandas.read_csv('%s%sdaily.%s.csv' % (file_path, year_part, symbol))
-    result_df['ma5']=pd.rolling_mean(result_df['close'] , 5)
-    result_df['ma10']=pd.rolling_mean(result_df['close'] , 10)    
-    result_df.to_csv(analyzed_path)
-    result_df = pandas.read_csv(analyzed_path)      
-    return result_df
-
 class TradeCommand(object):
     def __init__(self, share, price, trade_type):
         self.share = share
@@ -208,6 +195,37 @@ class CrossStrategy(object):
         else:
             return None
 
+class LimitSellStrategy(object):
+    def __init__(self):
+        self.max_price = 0.0
+        self.sell_threshold = 0.9
+    def prepare(self, df, account):
+        return
+    def evaluate(self, df, index, account):
+        if (account.share == 0):
+            self.max_price = df['close'][index]
+        if (account.share > 0):
+            if (df['high'][index] > self.max_price):
+                self.max_price = df['close'][index]
+            elif (df['close'][index] / self.max_price < self.sell_threshold and df['ma5'][index] < df['ma10'][index]):
+                return TradeCommand(-1, -1, 'sell')
+
+class CrossWithLimitSellStrategy(object):
+    def __init__(self):
+        self.limit_sell = LimitSellStrategy()        
+        self.cross = CrossStrategy()
+    def prepare(self, df, account):        
+        self.limit_sell.prepare(df, account)
+        self.cross.prepare(df, account)
+    def evaluate(self, df, index, account):
+        crossResult = self.cross.evaluate(df, index, account)
+        limitSellResult = self.limit_sell.evaluate(df, index, account)
+        if (limitSellResult != None and limitSellResult.trade_type == 'sell'):
+            return limitSellResult
+        elif (crossResult != None):
+            return crossResult
+        return None
+
 class MacdCrossStrategy(object):
     def __init__(self):
         self.column_name = 'macd_cross'
@@ -252,7 +270,7 @@ class CrossCurrentOnlyStrategy(object):
 class SphinxStrategy(object):
     def __init__(self):
         self.window = 5
-        self.sell_all_threshold = 0.95
+        self.sell_all_threshold = 0.9
         self.share_size = 10
         self.buy_threshold = 1
         self.sell_threshold = 1
@@ -264,19 +282,19 @@ class SphinxStrategy(object):
             if (account.share == 0):                
                 if (isUp(df, index, 'ma10')):
                     buy_price = df['high'].values[index]*100                    
-                    return TradeCommand(share=self.buy_share, price=-1, trade_type='buy')
-            if (account.share > 0 and index > self.window):                
-                if (df['close'].values[index] > df['close'].values[index-self.window] * self.buy_threshold):
-                    return TradeCommand(share=self.buy_share, price=-1, trade_type='buy')
-                if (df['close'].values[index] < df['close'].values[index-self.window] * self.sell_threshold):
-                    return TradeCommand(share=self.buy_share, price=-1, trade_type='sell')                    
-                if (df['close'].values[index] / df['close'].values[index-self.window] < self.sell_all_threshold):
-                    return TradeCommand(-1, -1, trade_type='sell')
+                    return TradeCommand(share=self.buy_share, price=-1, trade_type='buy')            
             if (account.share > 0 and index > 2*self.window):
                 if (df['close'].values[index] < df['close'].values[index-self.window] * self.sell_threshold and df['close'].values[index] < df['close'].values[index-2*self.window] * self.sell_threshold):
                     return TradeCommand(-1, -1, trade_type='sell')
             if (account.share > 0 and account.average_price > df['close'][index]):
-                return TradeCommand(-1, -1, trade_type='sell') 
+                return TradeCommand(-1, -1, trade_type='sell')
+            if (account.share > 0 and index > self.window):
+                if (df['close'].values[index] / df['close'].values[index-self.window] < self.sell_all_threshold):
+                    return TradeCommand(-1, -1, trade_type='sell')
+                if (df['close'].values[index] > df['close'].values[index-self.window] * self.buy_threshold):
+                    return TradeCommand(share=self.buy_share, price=-1, trade_type='buy')
+                if (df['close'].values[index] < df['close'].values[index-self.window] * self.sell_threshold):
+                    return TradeCommand(share=self.buy_share, price=-1, trade_type='sell')
         return None
 
 class CombinedStrategy(object):
