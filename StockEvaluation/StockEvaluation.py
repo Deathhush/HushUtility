@@ -5,6 +5,8 @@ import pandas as pd
 
 from pandas import Series, DataFrame
 from StockDataFetcher import StockDataFetcher
+from StockDataAnalyzer import MacdIndicator
+from StockDataAnalyzer import KdjIndicator
 
 def cross(data, val1, val2): 
     if (data[val1].values[1] > data[val1].values[0]  and data[val2].values[1]  > data[val2].values[0] 
