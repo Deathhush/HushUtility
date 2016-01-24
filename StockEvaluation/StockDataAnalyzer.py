@@ -24,8 +24,7 @@ class StockDataAnalyzer(object):
     
     def load_daily_df_by_year(self, symbol, start_year=2015, end_year=None):
         if end_year == None:
-            end_year = start_year
-        df = self.fetcher.load_daily_df_by_year(symbol, start_year)
+            end_year = start_year        
         start = datetime(int(start_year), 1, 1).strftime('%Y/%m/%d')
         end = datetime(int(end_year), 12, 31).strftime('%Y/%m/%d')
 
