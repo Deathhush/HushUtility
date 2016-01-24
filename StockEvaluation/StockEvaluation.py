@@ -5,8 +5,6 @@ import pandas as pd
 
 from pandas import Series, DataFrame
 from StockDataFetcher import StockDataFetcher
-from StockDataAnalyzer import MacdIndicator
-from StockDataAnalyzer import KdjIndicator
 
 def cross(data, val1, val2): 
     if (data[val1].values[1] > data[val1].values[0]  and data[val2].values[1]  > data[val2].values[0] 
@@ -161,8 +159,7 @@ class CrossWithLimitSellStrategy(object):
 class MacdCrossStrategy(object):
     def __init__(self):
         self.column_name = 'macd_cross'
-    def prepare(self, df, account):
-        MacdIndicator().populate(df)
+    def prepare(self, df, account):        
         window_apply(df, self.column_name, 2, lambda x: cross(x, 'MACD_DIF', 'MACD_DEA')) 
     def evaluate(self, df, index, account):
         if (df[self.column_name].values[index] == 1 and account.fund > 0 and df['MACD_DIF'][index] < 0 and df['MACD_DEA'][index] < 0):
@@ -175,8 +172,7 @@ class MacdCrossStrategy(object):
 class KdjCrossStrategy(object):
     def __init__(self):
         self.column_name = 'kdj_cross'
-    def prepare(self, df, account):
-        KdjIndicator().populate(df)
+    def prepare(self, df, account):        
         window_apply(df, self.column_name, 2, lambda x: cross(x, 'KDJ_K', 'KDJ_D')) 
     def evaluate(self, df, index, account):
         if (df[self.column_name].values[index] == 1 ):
