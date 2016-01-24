@@ -71,8 +71,24 @@ class StockDataFetcher(object):
             analyzedDataFrame = pd.read_csv(os.path.join(self.workingDir, str(year), 'daily.%s.csv' %(symbol)))
             analyzedDataFrame['ma5']=pd.rolling_mean(analyzedDataFrame['close'] , 5)
             analyzedDataFrame['ma10']=pd.rolling_mean(analyzedDataFrame['close'] , 10)    
-            analyzedDataFrame.to_csv(analyzedPath)
-        resultDf = pd.read_csv(analyzedPath)      
+            analyzedDataFrame.to_csv(analyzedPath, index=False)
+        resultDf = pd.read_csv(analyzedPath)
+        return resultDf
+
+    def load_daily_df(self, symbol, start_date, end_date):
+        start_date_datetime = datetime.strptime(start_date, '%Y/%m/%d')
+        end_date_datetime = datetime.strptime(end_date, '%Y/%m/%d')
+        df = self.load_daily_df_by_year(symbol, start_date_datetime.year)
+        for i in range(start_date_datetime.year+1, end_date_datetime.year+1):
+            df = df.append(self.load_daily_df_by_year(symbol, i), ignore_index=True)
+        df = df[df['date'] > start_date]
+        df = df[df['date'] < end_date]
+
+        analyzedFileName = '%s.%s.to.%s.analyzed.csv' % (symbol, start_date_datetime.strftime('%Y%m%d'), end_date_datetime.strftime('%Y%m%d'))
+        analyzedPath = os.path.join(self.workingDir, 'analyzed', analyzedFileName)
+        df.to_csv(analyzedPath, index=False)
+        resultDf = pd.read_csv(analyzedPath)
+
         return resultDf
 
 def dayBarToRow(dayBar):
