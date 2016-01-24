@@ -50,7 +50,7 @@ class StockDataFetcher(object):
         outputFile = os.path.join(outputFolder, 'daily.%s.csv' %(symbol))
         if os.path.isfile(outputFile):
             print 'Data cache exists. Daily bar data is loaded from cache.'
-            return
+            return outputFile
         noOutputFile = os.path.join(outputFolder, 'no.daily.%s.csv' %(symbol))        
         if os.path.isfile(noOutputFile):
             print 'Data cache exists. No data is loaded from cache.'
@@ -59,37 +59,32 @@ class StockDataFetcher(object):
         if(len(dayBars)>0):           
             self.save_daily_bar_to_file(dayBars=dayBars, outputFile=outputFile)
             print 'Daily bar data is loaded.'
+            return outputFile
         else:            
             self.save_daily_bar_to_file(dayBars=dayBars, outputFile=noOutputFile)
             print 'No data is loaded.'
-
     def load_daily_df_by_year(self, symbol, year=2015):
-        analyzedFileName = '%s.%s.daily.analyzed.csv' % (symbol, year)
-        analyzedPath = os.path.join(self.workingDir, 'analyzed', analyzedFileName)
-        if (os.path.isfile(analyzedPath)!=True):
-            self.fetch_daily_bar_by_year(symbol, year)
-            analyzedDataFrame = pd.read_csv(os.path.join(self.workingDir, str(year), 'daily.%s.csv' %(symbol)))
-            analyzedDataFrame['ma5']=pd.rolling_mean(analyzedDataFrame['close'] , 5)
-            analyzedDataFrame['ma10']=pd.rolling_mean(analyzedDataFrame['close'] , 10)    
-            analyzedDataFrame.to_csv(analyzedPath, index=False)
-        resultDf = pd.read_csv(analyzedPath)
-        return resultDf
+        file_name = self.fetch_daily_bar_by_year(symbol, year)        
+        return pd.read_csv(file_name)
 
-    def load_daily_df(self, symbol, start_date, end_date):
-        start_date_datetime = datetime.strptime(start_date, '%Y/%m/%d')
-        end_date_datetime = datetime.strptime(end_date, '%Y/%m/%d')
-        df = self.load_daily_df_by_year(symbol, start_date_datetime.year)
-        for i in range(start_date_datetime.year+1, end_date_datetime.year+1):
+    def load_daily_df(self, symbol, start, end):
+        start_date = datetime.strptime(start, '%Y/%m/%d')
+        end_date = datetime.strptime(end, '%Y/%m/%d')
+        df = self.load_daily_df_by_year(symbol, start_date.year)
+        for i in range(start_date.year+1, end_date.year+1):
             df = df.append(self.load_daily_df_by_year(symbol, i), ignore_index=True)
-        df = df[df['date'] > start_date]
-        df = df[df['date'] < end_date]
+        df = df[df['date'] > start]
+        df = df[df['date'] < end]
 
-        analyzedFileName = '%s.%s.to.%s.analyzed.csv' % (symbol, start_date_datetime.strftime('%Y%m%d'), end_date_datetime.strftime('%Y%m%d'))
-        analyzedPath = os.path.join(self.workingDir, 'analyzed', analyzedFileName)
-        df.to_csv(analyzedPath, index=False)
-        resultDf = pd.read_csv(analyzedPath)
+        fetchedFileName = '%s.%s.to.%s.fetched.csv' % (symbol, start_date.strftime('%Y%m%d'), end_date.strftime('%Y%m%d'))
+        fetchedPath = os.path.join(self.workingDir, 'analyzed', fetchedFileName)        
 
-        return resultDf
+        return remove_index(df, fetchedPath)
 
 def dayBarToRow(dayBar):
     return [datetime.fromtimestamp(dayBar.utc_time).strftime('%Y/%m/%d'), dayBar.open, dayBar.high, dayBar.low, dayBar.close, dayBar.volume, dayBar.amount]
+
+def remove_index(df, path):
+    df.to_csv(path, index=False)
+    df = pd.read_csv(path)
+    return df
