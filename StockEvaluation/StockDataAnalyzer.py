@@ -41,8 +41,8 @@ class StockDataAnalyzer(object):
         df = self.analyze(df, analyzedPath)
 
         df = df[df['date'] >=start]
-        resultDf = remove_index(df, analyzedPath)
-        return resultDf
+        df = df.reset_index(drop=True)
+        return df
 
 class KdjIndicator(object):
     def __init__(self, windowSize=9):
@@ -113,8 +113,3 @@ class MacdIndicator(object):
             current_adjusted_index = current_index + base           
             ema.append(factor*df[columnName][current_adjusted_index] + (1.0-factor)*ema[current_index-1])        
         return ema
-
-def remove_index(df, path):
-    df.to_csv(path, index=False)
-    df = pd.read_csv(path)
-    return df

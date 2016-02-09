@@ -75,16 +75,9 @@ class StockDataFetcher(object):
             df = df.append(self.load_daily_df_by_year(symbol, i), ignore_index=True)
         df = df[df['date'] > start]
         df = df[df['date'] < end]
+        df = df.reset_index(drop=True)
 
-        fetchedFileName = '%s.%s.to.%s.fetched.csv' % (symbol, start_date.strftime('%Y%m%d'), end_date.strftime('%Y%m%d'))
-        fetchedPath = os.path.join(self.workingDir, 'analyzed', fetchedFileName)        
-
-        return remove_index(df, fetchedPath)
+        return df
 
 def dayBarToRow(dayBar):
     return [datetime.fromtimestamp(dayBar.utc_time).strftime('%Y/%m/%d'), dayBar.open, dayBar.high, dayBar.low, dayBar.close, dayBar.volume, dayBar.amount]
-
-def remove_index(df, path):
-    df.to_csv(path, index=False)
-    df = pd.read_csv(path)
-    return df
