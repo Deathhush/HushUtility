@@ -9,9 +9,9 @@ from datetime import date, datetime, timedelta
 from StockDataFetcher import StockDataFetcher
 
 class StockDataAnalyzer(object):
-    def __init__(self, workingDir='D:\\Testland\\stock_data'):
-        self.workingDir = workingDir
-        self.fetcher = StockDataFetcher(workingDir)
+    def __init__(self, workingDir='D:\\Testland\\stock_data', force_load=False):
+        self.workingDir = workingDir       
+        self.fetcher = StockDataFetcher(workingDir, force_load)        
         
     def analyze(self, df, analyzedPath):        
         df['ma5']=pd.rolling_mean(df['close'] , 5)
@@ -23,7 +23,7 @@ class StockDataAnalyzer(object):
         return df         
     
     def load_daily_df_by_year(self, symbol, start_year=2015, end_year=None):
-        if end_year == None:
+        if end_year is None:
             end_year = start_year        
         start = datetime(int(start_year), 1, 1).strftime('%Y/%m/%d')
         end = datetime(int(end_year), 12, 31).strftime('%Y/%m/%d')

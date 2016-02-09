@@ -9,9 +9,10 @@ import pandas as pd
 
 
 class StockDataFetcher(object):
-    def __init__(self, workingDir='D:\\Testland\\stock_data'):
+    def __init__(self, workingDir='D:\\Testland\\stock_data', force_load = False):
         print 'WorkingDir is %s' % workingDir
         self.workingDir = workingDir
+        self.force_load = force_load
         configFilePath= os.path.join(workingDir, 'gm\\gm.ini')
         cf = ConfigParser.ConfigParser()
         cf.read(configFilePath)
@@ -48,13 +49,15 @@ class StockDataFetcher(object):
             print "Making dir '%s'" % outputFolder
             os.mkdir(outputFolder)
         outputFile = os.path.join(outputFolder, 'daily.%s.csv' %(symbol))
-        if os.path.isfile(outputFile):
-            print 'Data cache exists. Daily bar data is loaded from cache.'
-            return outputFile
         noOutputFile = os.path.join(outputFolder, 'no.daily.%s.csv' %(symbol))        
-        if os.path.isfile(noOutputFile):
-            print 'Data cache exists. No data is loaded from cache.'
-            return
+        if (self.force_load == False):                    
+            if os.path.isfile(outputFile):
+                print 'Data cache exists. Daily bar data is loaded from cache.'
+                return outputFile            
+            if os.path.isfile(noOutputFile):
+                print 'Data cache exists. No data is loaded from cache.'
+                # Should throw exception here
+                return
         dayBars = self.get_daily_bar(symbol=symbol, year=year)
         if(len(dayBars)>0):           
             self.save_daily_bar_to_file(dayBars=dayBars, outputFile=outputFile)
