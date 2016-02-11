@@ -9,7 +9,7 @@ import pandas as pd
 
 
 class StockDataFetcher(object):
-    def __init__(self, workingDir='D:\\Testland\\stock_data', force_load = False):
+    def __init__(self, workingDir='D:\\Testland\\stock_data', force_load = True):
         print 'WorkingDir is %s' % workingDir
         self.workingDir = workingDir
         self.force_load = force_load
@@ -31,15 +31,15 @@ class StockDataFetcher(object):
     def save_daily_bar_to_file(self, dayBars, outputFile):
         resultFile = file(outputFile, 'wb')
         writer = csv.writer(resultFile)
-        writer.writerow(['date', 'open', 'high','low','close','volume','amount'])
+        writer.writerow(['date', 'open', 'high','low','close','volume','amount', 'pre_close', 'adj_factor', 'flag'])
         writer.writerows([dayBarToRow(b) for b in dayBars])
         resultFile.close()
     
     def generate_gm_symbol(self, symbol):
         symbol=str(symbol)
-        if symbol[0]=='6':
+        if symbol.startswith('600'):
             return "SHSE.%s" % symbol
-        if symbol[0]=='0':
+        if symbol.startswith('000') or symbol.startswith('300'):
             return "SZSE.%s" % symbol
         return symbol
     
@@ -83,4 +83,4 @@ class StockDataFetcher(object):
         return df
 
 def dayBarToRow(dayBar):
-    return [datetime.fromtimestamp(dayBar.utc_time).strftime('%Y/%m/%d'), dayBar.open, dayBar.high, dayBar.low, dayBar.close, dayBar.volume, dayBar.amount]
+    return [datetime.fromtimestamp(dayBar.utc_time).strftime('%Y/%m/%d'), dayBar.open, dayBar.high, dayBar.low, dayBar.close, dayBar.volume, dayBar.amount, dayBar.pre_close, dayBar.adj_factor, dayBar.flag]

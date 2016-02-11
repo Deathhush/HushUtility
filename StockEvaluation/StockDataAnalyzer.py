@@ -9,11 +9,12 @@ from datetime import date, datetime, timedelta
 from StockDataFetcher import StockDataFetcher
 
 class StockDataAnalyzer(object):
-    def __init__(self, workingDir='D:\\Testland\\stock_data', force_load=False):
+    def __init__(self, workingDir='D:\\Testland\\stock_data', force_load=True):
         self.workingDir = workingDir       
         self.fetcher = StockDataFetcher(workingDir, force_load)        
         
-    def analyze(self, df, analyzedPath):        
+    def analyze(self, df, analyzedPath):
+        df = adjust_price(df)
         df['ma5']=pd.rolling_mean(df['close'] , 5)
         df['ma10']=pd.rolling_mean(df['close'] , 10)    
         df['ma20']=pd.rolling_mean(df['close'] , 20)
@@ -43,6 +44,16 @@ class StockDataAnalyzer(object):
         df = df[df['date'] >=start]
         df = df.reset_index(drop=True)
         return df
+
+def adjust_price(df):
+    adj_factor = df['adj_factor'][df.index.size-1]
+    for i in range(df.index.size):
+        current_adj_factor = df['adj_factor'][i]
+        df['open'].values[i] = round(df['open'][i]*current_adj_factor/adj_factor, 2)
+        df['high'].values[i] = round(df['high'][i]*current_adj_factor/adj_factor, 2)
+        df['low'].values[i] = round(df['low'][i]*current_adj_factor/adj_factor, 2)
+        df['close'].values[i] = round(df['close'][i]*current_adj_factor/adj_factor, 2)
+    return df
 
 class KdjIndicator(object):
     def __init__(self, windowSize=9):
