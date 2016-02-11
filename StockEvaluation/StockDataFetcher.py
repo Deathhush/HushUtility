@@ -37,9 +37,9 @@ class StockDataFetcher(object):
     
     def generate_gm_symbol(self, symbol):
         symbol=str(symbol)
-        if symbol.startswith('600'):
+        if symbol.startswith('60'):
             return "SHSE.%s" % symbol
-        if symbol.startswith('000') or symbol.startswith('300'):
+        if symbol.startswith('00') or symbol.startswith('300'):
             return "SZSE.%s" % symbol
         return symbol
     
