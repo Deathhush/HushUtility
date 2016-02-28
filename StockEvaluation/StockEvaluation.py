@@ -69,7 +69,7 @@ def evaluate_strategy(df, strategy, verbose=False):
         if (command.trade_type == 'buy'):
             buy_price = command.price
             if (buy_price == -1):
-                buy_price = df['high'].values[i+1] * 100
+                buy_price = (df['high'].values[i+1] + df['open'].values[i+1]) / 2 * 100
             buy_share = command.share
             if (buy_share == -1):
                 buy_share = np.floor(account.fund / buy_price)
