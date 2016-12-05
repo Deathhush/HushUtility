@@ -24,11 +24,27 @@ def PopulateWordInfo(m):
     wordInfo.features=features
     return wordInfo
 
-def parse_file(path, word_dict):
+# 中英文双语字幕，一行日文，一行中文
+def parse_file_type1(path, word_dict, skip_bytes=0):
     #for i in itertools.islice(parse_srt(path, 'GB18030'), 69, 70):
-    for i in parse_srt(path, 'GB18030'):
+    for i in parse_srt(path, 'GB18030', skip_bytes):
         if len(i.text) == 2:
             m = tagger.parseToNode(i.text[0].encode("utf-8"))
+            while m:
+                if m.feature !="BOS/EOS":             
+                    word = PopulateWordInfo(m)
+                    if word.dictionary_form in word_dict:
+                        word_dict[word.dictionary_form] = word_dict[word.dictionary_form] +1
+                    else:
+                        word_dict[word.dictionary_form] = 1
+                m = m.next
+
+# 纯日文字幕
+def parse_file_type2(path, word_dict, encoding="utf8", skip_bytes=0):
+    #for i in itertools.islice(parse_srt(path, 'GB18030'), 69, 70):
+    for i in parse_srt(path, encoding, skip_bytes):
+        for t in i.text:
+            m = tagger.parseToNode(t.encode("utf-8"))
             while m:
                 if m.feature !="BOS/EOS":             
                     word = PopulateWordInfo(m)
