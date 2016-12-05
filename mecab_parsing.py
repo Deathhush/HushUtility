@@ -1,5 +1,6 @@
 import operator
 import itertools
+import MeCab
 
 class WordInfo(object):
     def __init__(self):

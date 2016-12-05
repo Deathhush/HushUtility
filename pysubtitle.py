@@ -45,9 +45,11 @@ def read_file_line(f, encoding="gbk"):
         line = line.decode(encoding)
     return line[0:-1]    
 
-def parse_srt(path, encoding="gbk"): 
+def parse_srt(path, encoding="gbk", skip_bytes=0): 
     next_line = lambda:read_file_line(f, encoding)
-    with open(path) as f:        
+    with open(path) as f:
+        if skip_bytes != 0:
+            f.read(skip_bytes)
         item = parse_srt_item(next_line)
         while item != None:
             yield item
