@@ -1,4 +1,5 @@
 import operator
+import itertools
 
 class WordInfo(object):
     def __init__(self):
