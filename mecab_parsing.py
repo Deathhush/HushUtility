@@ -1,5 +1,4 @@
 import operator
-import itertools
 import MeCab
 
 class WordInfo(object):
@@ -25,8 +24,9 @@ def PopulateWordInfo(m):
     return wordInfo
 
 # 中英文双语字幕，一行日文，一行中文
-def parse_file_type1(path, word_dict, skip_bytes=0):
+def parse_jpn_cn_subtitle(path, word_dict, skip_bytes=0):
     #for i in itertools.islice(parse_srt(path, 'GB18030'), 69, 70):
+    tagger = MeCab.Tagger("")
     for i in parse_srt(path, 'GB18030', skip_bytes):
         if len(i.text) == 2:
             m = tagger.parseToNode(i.text[0].encode("utf-8"))
@@ -40,8 +40,9 @@ def parse_file_type1(path, word_dict, skip_bytes=0):
                 m = m.next
 
 # 纯日文字幕
-def parse_file_type2(path, word_dict, encoding="utf8", skip_bytes=0):
+def parse_pure_jpn_subtitle(path, word_dict, encoding="utf8", skip_bytes=1):
     #for i in itertools.islice(parse_srt(path, 'GB18030'), 69, 70):
+    tagger = MeCab.Tagger("")
     for i in parse_srt(path, encoding, skip_bytes):
         for t in i.text:
             m = tagger.parseToNode(t.encode("utf-8"))
@@ -54,16 +55,15 @@ def parse_file_type2(path, word_dict, encoding="utf8", skip_bytes=0):
                         word_dict[word.dictionary_form] = 1
                 m = m.next
 
-def print_word_dict(word_dict):    
+def print_word_dict(word_dict, min_count=1):    
     print len(word_dict)
     sorted_x = sorted(word_dict.items(), key=operator.itemgetter(1), reverse=True)
     total = 0
     valid = 0
     for x in sorted_x:
-        total = total + x[1]
-        if (x[1]>1):
+        if (x[1]>=min_count):
+            total = total + x[1]
             valid = valid+1
-        print "{0},{1}".format(x[0], x[1])
-
+            print "{0},{1}".format(x[0], x[1])
     print total
-    print valid  
+    print valid    
