@@ -7,3 +7,6 @@ create table srt_items(item_id uniqueidentifier, source_id uniqueidentifier, num
 create table words(word_id uniqueidentifier, dict_form nvarchar(100), exact_form nvarchar(100), word_count bigint)
 
 create table word_item_mapping(word_id uniqueidentifier, item_id uniqueidentifier)
+
+create view words_summary as
+select dict_form, sum(word_count) as word_count from words group by dict_form
