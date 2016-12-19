@@ -74,7 +74,8 @@ def parse_srt(path):
     with codecs.open(path, "r", encoding) as f:
         if skip_bytes != 0:
             f.read(skip_bytes)
-        next_line()
+        while len(next_line()) == 0:
+            continue
         item = parse_srt_item(next_line, 1)        
         while item != None:
             yield item
