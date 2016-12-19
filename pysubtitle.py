@@ -43,7 +43,28 @@ def read_file_line(f):
     return line[0:-2]    
 
 import codecs
-def parse_srt(path, encoding="gbk", skip_bytes=0): 
+import chardet
+import os
+
+def detect_encoding(file_name):
+    bytes = min(256, os.path.getsize(file_name))
+    with open(file_name, 'rb') as f:
+        header = f.read(bytes)
+        if header.startswith(codecs.BOM_UTF8):
+            return ('utf8', 1)
+        elif header.startswith(codecs.BOM_UTF16):
+            return ('utf16', 0)
+        else:
+            result = chardet.detect(header)    
+            encoding = result['encoding']
+            if encoding == "GB2312":
+                encoding = "GB18030"
+            return (encoding, 0)
+        
+def parse_srt(path): 
+    result = detect_encoding(path)
+    encoding = result[0]
+    skip_bytes = result[1]
     next_line = lambda:read_file_line(f)
     with codecs.open(path, "r", encoding) as f:
         if skip_bytes != 0:
