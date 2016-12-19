@@ -13,13 +13,11 @@ def parse_next_line(next_line):
     line = next_line()    
     return line
     
-def parse_srt_item(next_line):    
-    try:        
-        line = parse_next_line(next_line)    
-        while line == "":        
-            line = parse_next_line(next_line)    
-        srtItem = SrtItem()        
-        srtItem.index = int(line)
+def parse_srt_item(next_line, index):    
+    try:
+        srtItem = SrtItem() 
+        srtItem.index = index
+        next_index_string = str(index+1)
         timeLines = parse_next_line(next_line).split(" --> ")
         startTimeLine = timeLines[0]            
         endTimeLine = timeLines[1]
@@ -27,9 +25,16 @@ def parse_srt_item(next_line):
         srtItem.start_millisecond = startTimeLine.split(",")[1]
         srtItem.end_time = endTimeLine.split(",")[0]
         srtItem.end_millisecond = endTimeLine.split(",")[1]
-        line = parse_next_line(next_line)        
-        while len(line) != 0:
-            srtItem.text.append(line)        
+        line = parse_next_line(next_line)
+        last_line_empty = False
+        while True:
+            if (len(line) == 0):
+                last_line_empty = True                
+            elif(len(line) > 0 and last_line_empty and line == next_index_string):                
+                break                
+            else:
+                last_line_empty = False
+                srtItem.text.append(line)                
             line = parse_next_line(next_line)        
         return srtItem        
     except StopIteration:
@@ -69,9 +74,11 @@ def parse_srt(path):
     with codecs.open(path, "r", encoding) as f:
         if skip_bytes != 0:
             f.read(skip_bytes)
-        item = parse_srt_item(next_line)
+        next_line()
+        item = parse_srt_item(next_line, 1)        
         while item != None:
             yield item
-            item = parse_srt_item(next_line)
+            next_index = item.index+1
+            item = parse_srt_item(next_line, next_index)            
         print "parse end reached"
         raise StopIteration
