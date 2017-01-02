@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+import operator
 import operator
 import MeCab
 import uuid
@@ -102,7 +104,7 @@ def PopulateWordInfo(m):
         wordInfo.word_class = features[0]
         if (len(features)>6):
             wordInfo.dictionary_form = features[6]
-            if (wordInfo.dictionary_form == u"*" or wordInfo.dictionary_form==u"¡¡"):
+            if (wordInfo.dictionary_form == u"*" or wordInfo.dictionary_form==u"ï¿½ï¿½"):
                 return None
         if (len(features)>7):
             wordInfo.spelling = features[7]
@@ -111,7 +113,7 @@ def PopulateWordInfo(m):
         return None
     return wordInfo
 
-# ÖÐÓ¢ÎÄË«Óï×ÖÄ»£¬Ò»ÐÐÈÕÎÄ£¬Ò»ÐÐÖÐÎÄ
+# ï¿½ï¿½Ó¢ï¿½ï¿½Ë«ï¿½ï¿½ï¿½ï¿½Ä»ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 def parse_jpn_cn_subtitle(path, word_dict):
     #for i in itertools.islice(parse_srt(path, 'GB18030'), 69, 70):
     tagger = MeCab.Tagger("")
@@ -130,7 +132,7 @@ def parse_jpn_cn_subtitle(path, word_dict):
                             word_dict[word_key] = 1
                 m = m.next
 
-# ´¿ÈÕÎÄ×ÖÄ»
+# ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä»
 def parse_pure_jpn_subtitle(path, word_dict):
     #for i in itertools.islice(parse_srt(path, 'GB18030'), 69, 70):
     tagger = MeCab.Tagger("")
@@ -165,7 +167,7 @@ def print_word_dict(word_dict, min_count=1):
     print total
     print valid 
     
-# ÖÐÓ¢ÎÄË«Óï×ÖÄ»£¬Ò»ÐÐÈÕÎÄ£¬Ò»ÐÐÖÐÎÄ
+# ï¿½ï¿½Ó¢ï¿½ï¿½Ë«ï¿½ï¿½ï¿½ï¿½Ä»ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 def load_jpn_cn_subtitle(wordDbMgr, path, word_dict=dict(), word_id_dict=dict()):
     #for i in itertools.islice(parse_srt(path, 'GB18030'), 69, 70):
     tagger = MeCab.Tagger("")
@@ -174,7 +176,7 @@ def load_jpn_cn_subtitle(wordDbMgr, path, word_dict=dict(), word_id_dict=dict())
         i.text = i.text[0:1]
         process_srt_item(wordDbMgr, i, file_id, tagger, word_dict, word_id_dict)
 
-# ´¿ÈÕÎÄ×ÖÄ»
+# ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä»
 def load_pure_jpn_subtitle(wordDbMgr, path, word_dict=dict(), word_id_dict=dict()):
     #for i in itertools.islice(parse_srt(path, 'GB18030'), 69, 70):
     tagger = MeCab.Tagger("")

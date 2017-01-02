@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+import operator
 class SrtItem(object):
     def __init__(self):
         self.index = -1        
