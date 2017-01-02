@@ -85,7 +85,7 @@ class WordDbMgr(object):
             conn.cursor().execute(query, parameters)
             conn.commit()
 
-class WordInfo(object):
+class WordOccurrenceInfo(object):
     def __init__(self):
         dictionary_form = ""
         word_class = ""               
@@ -96,7 +96,7 @@ class WordInfo(object):
         return "{0},{1},{2},{3}".format(self.value, self.spelling, self.dictionary_form, self.word_class)
 
 def PopulateWordInfo(m):
-    wordInfo = WordInfo()
+    wordInfo = WordOccurrenceInfo()
     try:
         features = m.feature.decode("utf8").split(",") 
         wordInfo.value = m.surface.decode("utf8")  
@@ -111,44 +111,6 @@ def PopulateWordInfo(m):
     except UnicodeDecodeError:
         return None
     return wordInfo
-
-# 中英文双语字幕，一行日文，一行中文
-def parse_jpn_cn_subtitle(path, word_dict):
-    #for i in itertools.islice(parse_srt(path, 'GB18030'), 69, 70):
-    tagger = MeCab.Tagger("")
-    for i in parse_srt(path):
-        if len(i.text) == 2:
-            m = tagger.parseToNode(i.text[0].encode("utf-8"))
-            while m:
-                if m.feature !="BOS/EOS":             
-                    word = PopulateWordInfo(m)
-                    if word is not None:                        
-                        word_key = (word.dictionary_form, word.value)
-                        if word_key in word_id_dict:
-                            word_dict[word_key] = word_dict[word_key] + 1
-                        else:                        
-                            word_id_dict[word_key] = str(uuid.uuid1())
-                            word_dict[word_key] = 1
-                m = m.next
-
-# 纯日文字幕
-def parse_pure_jpn_subtitle(path, word_dict):
-    #for i in itertools.islice(parse_srt(path, 'GB18030'), 69, 70):
-    tagger = MeCab.Tagger("")
-    for i in parse_srt(path):
-        for t in i.text:
-            m = tagger.parseToNode(t.encode("utf-8"))
-            while m:
-                if m.feature !="BOS/EOS":             
-                    word = PopulateWordInfo(m)
-                    if word is not None:
-                        word_key = (word.dictionary_form, word.value)
-                        if word_key in word_id_dict:
-                            word_dict[word_key] = word_dict[word_key] + 1
-                        else:                        
-                            word_id_dict[word_key] = str(uuid.uuid1())
-                            word_dict[word_key] = 1
-                m = m.next
     
 # 中英文双语字幕，一行日文，一行中文
 def load_jpn_cn_subtitle(wordDbMgr, path, word_dict=dict()):
@@ -175,7 +137,7 @@ def process_srt_item(wordDbMgr, srt_item, file_id, tagger, word_dict):
             if m.feature !="BOS/EOS":
                 word = PopulateWordInfo(m)
                 if word is not None:
-                    word_key = (word.dictionary_form, word.value)
+                    word_key = word.dictionary_form
                     if word_key in word_dict:
                         word_dict[word_key][0] = word_dict[word_key][0] + 1                        
                     else:                                                
